@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Curiora — Explore Anything</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#08131f;color:#eef8ff}
+:root{--card:#102334;--card2:#142c40;--line:#ffffff14;--muted:#a9bfcd;--a:#55d6c2;--b:#ffad5c}
+body.light{background:#edf7f8;color:#10212b;--card:#fff;--card2:#e6f3f4;--line:#10212b18;--muted:#58707b}
+button,input{font:inherit}.wrap{max-width:1100px;margin:auto;padding:0 18px}
+header{height:68px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);position:sticky;top:0;background:#08131fe8;backdrop-filter:blur(14px);z-index:5}
+body.light header{background:#edf7f8e8}.brand{font-weight:950;font-size:22px;letter-spacing:-1px}.brand span{color:var(--a)}
+nav{display:flex;gap:8px}nav button{border:1px solid var(--line);background:#ffffff0d;color:inherit;border-radius:10px;padding:9px 12px;font-weight:750}
+main{padding:30px 0 50px}.hero{text-align:center;padding:65px 0 35px}.hero h1{font-size:clamp(42px,8vw,78px);line-height:.98;letter-spacing:-4px;margin:12px 0}.hero p{color:var(--muted);font-size:18px;max-width:680px;margin:0 auto 25px;line-height:1.55}
+.search{max-width:760px;margin:auto;display:flex;gap:8px;background:var(--card);border:1px solid var(--line);padding:8px;border-radius:18px;box-shadow:0 18px 50px #0004}.search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:inherit;padding:12px;font-size:17px}.search button{border:0;border-radius:13px;padding:12px 18px;font-weight:900;background:linear-gradient(135deg,var(--a),#35a9d4);color:#06171b}
+.tags{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:15px}.tag{border:1px solid var(--line);background:#ffffff08;color:var(--muted);padding:7px 11px;border-radius:999px;cursor:pointer}
+.grid{display:grid;grid-template-columns:1.55fr .8fr;gap:16px}.card{background:linear-gradient(145deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 15px 45px #0002;margin-bottom:16px}.card h2{margin:0 0 9px;font-size:25px}.muted{color:var(--muted)}.answer{font-size:17px;line-height:1.72}.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.fact{background:#ffffff08;border:1px solid var(--line);border-radius:14px;padding:13px}.fact b{display:block;color:var(--a);font-size:12px;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.gallery img{width:100%;height:150px;object-fit:cover;border-radius:13px;background:#1d3546}.result{display:block;text-decoration:none;color:inherit;padding:14px 0;border-bottom:1px solid var(--line)}.result:last-child{border:0}.result h3{margin:0 0 5px;color:var(--a)}.result p{margin:0;color:var(--muted);line-height:1.45}.pill{display:inline-block;background:#55d6c220;color:var(--a);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;margin-bottom:8px}
+.hidden{display:none}.error{background:#ff5d7320;border:1px solid #ff5d7340;color:#ffb0ba;padding:14px;border-radius:13px}.loading{padding:30px;text-align:center;color:var(--muted)}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}.gallery{grid-template-columns:1fr 1fr}.gallery img{height:125px}.hero{padding-top:38px}.search button{padding:11px 13px}}
+</style>
+</head>
+<body>
+<header><div class="wrap" style="display:flex;width:100%;justify-content:space-between;align-items:center"><div class="brand">CURI<span>ORA</span></div><nav><button id="theme">☼ Theme</button><button id="home">⌂ Home</button></nav></div></header>
+<main class="wrap">
+<section class="hero" id="searchHome">
+<div class="pill">A different way to explore knowledge</div>
+<h1>Search less.<br>Understand more.</h1>
+<p>Search a topic and get a rich information page with an overview, key facts, pictures, related ideas and trusted source links.</p>
+<form class="search" id="form"><input id="q" autocomplete="off" placeholder="Try: volcano, basketball, Philippines, Albert Einstein..." required><button>EXPLORE</button></form>
+<div class="tags"><span class="tag">🌋 Volcano</span><span class="tag">🪐 Solar System</span><span class="tag">🧠 Psychology</span><span class="tag">🏛️ Philippines</span></div>
+</section>
+<section id="results" class="hidden"></section>
+</main>
+<script>
+const $=s=>document.querySelector(s), results=$("#results"),home=$("#searchHome"),input=$("#q");
+function theme(){document.body.classList.toggle("light",localStorage.knowTheme==="light")}
+$("#theme").onclick=()=>{localStorage.knowTheme=localStorage.knowTheme==="light"?"dark":"light";theme()};theme();
+$("#home").onclick=()=>{results.classList.add("hidden");home.classList.remove("hidden");input.focus()};
+document.querySelectorAll(".tag").forEach(x=>x.onclick=()=>{input.value=x.textContent.replace(/^[^ ]+ /,"");$("#form").requestSubmit()});
+$("#form").onsubmit=async e=>{e.preventDefault();let q=input.value.trim();if(q)search(q)};
+async function search(q){
+ home.classList.add("hidden");results.classList.remove("hidden");
+ results.innerHTML='<div class="card loading">🔎 Building your knowledge page...</div>';
+ try{
+   const url="https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&prop=extracts|pageimages|info&inprop=url&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=900&titles="+encodeURIComponent(q);
+   const data=await fetch(url).then(r=>r.json());
+   const pages=Object.values(data.query.pages);
+   const exact=pages.find(p=>p.pageid);
+   const searchUrl="https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&list=search&srlimit=7&srsearch="+encodeURIComponent(q);
+   const sr=await fetch(searchUrl).then(r=>r.json());
+   if(!exact){renderSearchOnly(q,sr.query.search);return}
+   const title=exact.title, text=exact.extract||"No summary was available.";
+   const related=sr.query.search.filter(x=>x.title!==title).slice(0,5);
+   const imageUrl=exact.thumbnail?.source;
+   const commons="https://commons.wikimedia.org/w/api.php?action=query&origin=*&format=json&generator=search&gsrsearch="+encodeURIComponent(q)+"&gsrnamespace=6&gsrlimit=6&prop=imageinfo&iiprop=url&iiurlwidth=800";
+   let images=[];try{let cd=await fetch(commons).then(r=>r.json());images=Object.values(cd.query?.pages||{}).map(p=>p.imageinfo?.[0]?.thumburl||p.imageinfo?.[0]?.url).filter(Boolean).slice(0,6)}catch(_){}
+   const wikiUrl=exact.fullurl||("https://en.wikipedia.org/wiki/"+encodeURIComponent(title.replaceAll(" ","_")));
+   results.innerHTML=`
+   <div class="card">
+    <span class="pill">CURIORA RESULT</span><h2>${esc(title)}</h2>
+    <p class="muted">An expanded starting point assembled from Wikimedia content. Use the source links to verify and explore further.</p>
+   </div>
+   <div class="grid">
+    <div>
+      <article class="card"><h2>📖 What is ${esc(title)}?</h2><p class="answer">${esc(text)}</p><p style="margin-top:15px"><a href="${esc(wikiUrl)}" target="_blank" rel="noopener" style="color:var(--a);font-weight:800">Read the full source →</a></p></article>
+      <article class="card"><h2>🧠 Key ideas</h2><div class="facts"><div class="fact"><b>Topic</b>${esc(title)}</div><div class="fact"><b>Source type</b>Encyclopedic reference</div><div class="fact"><b>Language</b>English</div><div class="fact"><b>More to explore</b>${related.length} related pages</div></div></article>
+      ${images.length?`<article class="card"><h2>🖼️ Pictures</h2><div class="gallery">${images.map(u=>`<img src="${esc(u)}" loading="lazy" alt="${esc(title)}">`).join("")}</div><p class="muted" style="margin-top:10px;font-size:12px">Images are fetched from Wikimedia Commons; check each source's licensing/attribution information before reuse.</p></article>`:""}
+    </div>
+    <aside>
+      <article class="card"><h2>🔎 Explore more</h2>${related.map(x=>`<a class="result" href="#" data-search="${esc(x.title)}"><h3>${esc(x.title)}</h3><p>${esc(x.snippet.replace(/<[^>]+>/g,""))}</p></a>`).join("")}</article>
+      <article class="card"><h2>💡 About this result</h2><p class="muted" style="line-height:1.6">Curiora is designed to turn a search into an information dashboard instead of a page full of links. The live data here comes from Wikimedia's public APIs.</p></article>
+    </aside>
+   </div>`;
+   results.querySelectorAll("[data-search]").forEach(a=>a.onclick=e=>{e.preventDefault();input.value=a.dataset.search;search(a.dataset.search);window.scrollTo(0,0)});
+ }catch(err){results.innerHTML='<div class="card error">Could not reach the information service. Check your internet connection and try again.</div>'}
+}
+function renderSearchOnly(q,items){
+ results.innerHTML=`<div class="card"><h2>No exact page for “${esc(q)}”</h2><p class="muted">Here are related results you can explore.</p>${items.map(x=>`<a class="result" href="#" data-search="${esc(x.title)}"><h3>${esc(x.title)}</h3><p>${esc(x.snippet.replace(/<[^>]+>/g,""))}</p></a>`).join("")}</div>`;
+ results.querySelectorAll("[data-search]").forEach(a=>a.onclick=e=>{e.preventDefault();input.value=a.dataset.search;search(a.dataset.search)})
+}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+</script>
+</body>
+</html>
